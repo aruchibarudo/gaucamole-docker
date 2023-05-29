@@ -1,0 +1,45 @@
+services:
+  db:
+    image: postgres
+    networks:
+      - guacamole
+    environment:
+      POSTGRES_DB: guacamole_db
+      POSTGRES_USER: guacamole
+      POSTGRES_PASSWORD: P@ssw0rd
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+      - ./initdb/initdb.sql:/docker-entrypoint-initdb.d/gaucamole.sql:ro
+    depends_on:
+      - guac_initdb
+  guacd:
+    image: guacamole/guacd
+    networks:
+      - guacamole
+    depends_on:
+      - db
+  web:
+    image: guacamole/guacamole
+    networks:
+      - guacamole
+    environment:
+      GUACD_HOSTNAME: guacd
+      GUACD_PORT: 4822
+      POSTGRES_HOSTNAME: db
+      POSTGRES_DATABASE: guacamole_db
+      POSTGRES_USER: guacamole
+      POSTGRES_PASSWORD: P@ssw0rd
+    ports:
+      - 8080:8080
+    depends_on:
+      - guacd
+      - db
+  guac_initdb:
+    image: guacamole/guacamole
+    user: 1001:1001
+    restart: no
+    volumes:
+      - ./initdb:/tmp/initdb
+    command: ["/bin/bash", "-c", "/opt/guacamole/bin/initdb.sh --postgresql > /tmp/initdb/initdb.sql"]
+networks:
+  guacamole:
